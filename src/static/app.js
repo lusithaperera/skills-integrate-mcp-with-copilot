@@ -157,4 +157,87 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Initialize app
   fetchActivities();
+
+  // Filtering, sorting, and searching
+  searchInput.addEventListener("input", renderActivities);
+  filterSelect.addEventListener("change", renderActivities);
+  sortSelect.addEventListener("change", renderActivities);
+
+  function getCategory(name, details) {
+    // Simple mapping for demo purposes
+    if (name.includes("Class") || name.includes("Math") || name.includes("Debate")) return "Academic";
+    if (name.includes("Team") || name.includes("Gym")) return "Sports";
+    if (name.includes("Art") || name.includes("Drama")) return "Arts";
+    return "Clubs";
+  }
+
+  function populateActivitySelect(activities) {
+    activitySelect.innerHTML = "";
+    Object.keys(activities).forEach((name) => {
+      const option = document.createElement("option");
+      option.value = name;
+      option.textContent = name;
+      activitySelect.appendChild(option);
+    });
+  }
+
+  function renderActivities() {
+    activitiesList.innerHTML = "";
+    let entries = Object.entries(allActivities);
+
+    // Filter by category
+    const filterValue = filterSelect.value;
+    if (filterValue) {
+      entries = entries.filter(([name, details]) => getCategory(name, details) === filterValue);
+    }
+
+    // Search by name or description
+    const searchValue = searchInput.value.toLowerCase();
+    if (searchValue) {
+      entries = entries.filter(([name, details]) =>
+        name.toLowerCase().includes(searchValue) ||
+        details.description.toLowerCase().includes(searchValue)
+      );
+    }
+
+    // Sort
+    const sortValue = sortSelect.value;
+    if (sortValue === "name") {
+      entries.sort((a, b) => a[0].localeCompare(b[0]));
+    } else if (sortValue === "schedule") {
+      entries.sort((a, b) => a[1].schedule.localeCompare(b[1].schedule));
+    }
+
+    // Render
+    if (entries.length === 0) {
+      activitiesList.innerHTML = "<p>No activities found.</p>";
+      return;
+    }
+    entries.forEach(([name, details]) => {
+      const activityCard = document.createElement("div");
+      activityCard.className = "activity-card";
+      const spotsLeft = details.max_participants - details.participants.length;
+      const participantsHTML =
+        details.participants.length > 0
+          ? `<div class=\"participants-section\">\n              <h5>Participants:</h5>\n              <ul class=\"participants-list\">\n                ${details.participants
+                  .map(
+                    (email) =>
+                      `<li><span class=\"participant-email\">${email}</span><button class=\"delete-btn\" data-activity=\"${name}\" data-email=\"${email}\">❌</button></li>`
+                  )
+                  .join("")}\n              </ul>\n            </div>`
+          : `<p><em>No participants yet</em></p>`;
+      activityCard.innerHTML = `
+        <h4>${name}</h4>
+        <p>${details.description}</p>
+        <p><strong>Schedule:</strong> ${details.schedule}</p>
+        <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+        <div class=\"participants-container\">\n          ${participantsHTML}\n        </div>
+      `;
+      activitiesList.appendChild(activityCard);
+    });
+    // Add event listeners to delete buttons
+    document.querySelectorAll(".delete-btn").forEach((button) => {
+      button.addEventListener("click", handleUnregister);
+    });
+  }
 });
